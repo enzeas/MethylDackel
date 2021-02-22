@@ -81,6 +81,24 @@ inline int isCHH(char *seq, int pos, int seqlen) {
     return 0;
 }
 
+inline int isGCH(char *seq, int pos, int seqlen) {
+    if(pos >= seqlen) return 0;
+    if(*(seq+pos) == 'G' || *(seq+pos) == 'g') {
+        if(pos+2 >= seqlen) return 0;
+        if(*(seq+pos+1) == 'C' || *(seq+pos+1) == 'c') {
+          if(*(seq+pos+2) != 'G' || *(seq+pos+1) != 'g') return 1;
+        }
+        return 0;
+    } else if(*(seq+pos) == 'C' || *(seq+pos) == 'c') {
+        if(pos <= 1) return 0;
+        if(*(seq+pos-1) == 'G' || *(seq+pos-1) == 'g') {
+          if(*(seq+pos-2) != 'C' || *(seq+pos-2) != 'c') return -1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
 int getStrand(bam1_t *b) {
     char *XG = (char *) bam_aux_get(b, "XG");
     //Only bismark uses the XG tag like this. Some other aligners use it for other purposes...
@@ -247,7 +265,7 @@ unsigned char* getMappabilityValue(Config* config, char* chrom_n, uint32_t start
         {
             offset++;
         }
-        
+
     }
     return data;
 }
@@ -269,7 +287,7 @@ char check_mappability(void *data, bam1_t *b) {
         read1_end = b->core.pos + b->core.l_qseq;
         read2_start = b->core.mpos;
         read2_end = b->core.mpos + b->core.l_qseq; //assuming both reads same length to avoid issues finding read2_end on right read (doing the same on the left read for consistency)
-        
+
     }
     else //get pos for right read
     {
@@ -279,7 +297,7 @@ char check_mappability(void *data, bam1_t *b) {
         read1_end = b->core.mpos + b->core.l_qseq; //assuming both reads same length to avoid issues finding read2_end
     }
     vals = getMappabilityValue(ldata->config, ldata->hdr->target_name[b->core.tid], read1_start, read1_end+1);
-    
+
     for (i=0; i<=read1_end-read1_start; i++)
     {
         if(vals[i] > 0) //is base above threshold?
@@ -294,7 +312,7 @@ char check_mappability(void *data, bam1_t *b) {
     }
     free(vals);
     vals = getMappabilityValue(ldata->config, ldata->hdr->target_name[b->core.tid], read2_start, read2_end+1);
-    
+
     num_mappable_bases = 0;
     for (i=0; i<=read2_end-read2_start; i++)
     {
