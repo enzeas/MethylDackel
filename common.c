@@ -64,10 +64,12 @@ inline int isCHG(char *seq, int pos, int seqlen) {
     if(pos >= seqlen) return 0;
     if(*(seq+pos) == 'C' || *(seq+pos) == 'c') {
         if(pos+2 >= seqlen) return 0;
+        if(*(seq+pos+1) == 'G' || *(seq+pos+1) == 'g') return 0;
         if(*(seq+pos+2) == 'G' || *(seq+pos+2) == 'g') return 1;
         return 0;
     } else if(*(seq+pos) == 'G' || *(seq+pos) == 'g') {
         if(pos <= 1) return 0;
+        if(*(seq+pos-1) == 'C' || *(seq+pos-1) == 'c') return 0;
         if(*(seq+pos-2) == 'C' || *(seq+pos-2) == 'c') return -1;
         return 0;
     }
@@ -76,8 +78,17 @@ inline int isCHG(char *seq, int pos, int seqlen) {
 
 inline int isCHH(char *seq, int pos, int seqlen) {
     if(pos >= seqlen) return 0;
-    if(*(seq+pos) == 'C' || *(seq+pos) == 'c') return 1;
-    else if(*(seq+pos) == 'G' || *(seq+pos) == 'g') return -1;
+    if(*(seq+pos) == 'C' || *(seq+pos) == 'c') {
+        if(pos+2 >= seqlen) return 0;
+        if(*(seq+pos+1) == 'G' || *(seq+pos+1) == 'g') return 0;
+        if(*(seq+pos+2) == 'G' || *(seq+pos+2) == 'g') return 0;
+        return 1;
+    } else if(*(seq+pos) == 'G' || *(seq+pos) == 'g') {
+        if(pos <= 1) return 0;
+        if(*(seq+pos-1) == 'C' || *(seq+pos-1) == 'c') return 0;
+        if(*(seq+pos-2) == 'C' || *(seq+pos-2) == 'c') return 0;
+        return -1;
+    }
     return 0;
 }
 

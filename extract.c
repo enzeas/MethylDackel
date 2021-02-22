@@ -190,7 +190,7 @@ void writeBlank(kstring_t **ks, Config *config, char *chrom, int32_t pos, uint32
     int direction = 0;
     char context[3] = "HG";
     if(pos == -1) return;
-    // 没执行后面部分
+    // (TODO)没调用这个函数,bug以后再修
     for(;*lastPos < pos; (*lastPos)++) {
       if ((direction = isGCH(seq, *lastPos-localPos2, seqlen)) != 0) {
           if(!config->keepGCH) continue;
@@ -414,20 +414,57 @@ void *extractCalls(void *foo) {
                 if(o == 0) continue; //Wrong strand
             }
 
+            int forward_site = 0;
+            int reverse_site = 0;
+            int forward_type = 0;
+            int reverse_type = 0;
             // GCH 必须放最前面，否则全部会判定为CHH然后continue
+            // 会有一些位置属于多种不同的情况,例如从正链是CpG,负链是GCH,不能直接continue
             if ((direction = isGCH(seq, pos-localPos2, seqlen))){
-                if(!config->keepGCH) continue;
+                // if(!config->keepGCH) continue;
                 type = 3;
-            } else if((direction = isCpG(seq, pos-localPos2, seqlen))) {
-                if(!config->keepCpG) continue;
+                if (direction > 0) {
+                    forward_type = 3;
+                    forward_site = 1;
+                } else {
+                    reverse_type = 3;
+                    reverse_site = 1;
+                }
+            }
+            if((direction = isCpG(seq, pos-localPos2, seqlen))) {
+                // if(!config->keepCpG) continue;
                 type = 0;
-            } else if((direction = isCHG(seq, pos-localPos2, seqlen))) {
-                if(!config->keepCHG) continue;
+                if (direction > 0) {
+                    forward_type = 0;
+                    forward_site = 1;
+                } else {
+                    reverse_type = 0;
+                    reverse_site = 1;
+                }
+            }
+            if((direction = isCHG(seq, pos-localPos2, seqlen))) {
+                // if(!config->keepCHG) continue;
                 type = 1;
-            } else if((direction = isCHH(seq, pos-localPos2, seqlen))) {
-                if(!config->keepCHH) continue;
+                if (direction > 0) {
+                    forward_type = 1;
+                    forward_site = 1;
+                } else {
+                    reverse_type = 1;
+                    reverse_site = 1;
+                }
+            }
+            if((direction = isCHH(seq, pos-localPos2, seqlen))) {
+                // if(!config->keepCHH) continue;
                 type = 2;
-            } else {
+                if (direction > 0) {
+                    forward_type = 2;
+                    forward_site = 1;
+                } else {
+                    reverse_type = 2;
+                    reverse_site = 1;
+                }
+            }
+            if (!(forward_site || reverse_site)) {
                 continue;
             }
 
@@ -486,8 +523,8 @@ void *extractCalls(void *foo) {
                         context[0] = 'H'; context[1] = 'H';
                     } else if(type == 3) {
                         context[0] = 'C'; context[1] = 'H';
-                    } else {
-                      continue;
+                    //} else {
+                    //  continue;
                     }
 
                     //Set the trinucleotide context
@@ -495,7 +532,14 @@ void *extractCalls(void *foo) {
 
                     writeCall(os[0], config, hdr->target_name[tid], pos, 1, nmethyl, nunmethyl, base, context, TriNucleotideContexts[tnc]);
                 } else {
-                    writeCall(os[type], config, hdr->target_name[tid], pos, 1, nmethyl, nunmethyl, base, NULL, NULL);
+                    // 在这里输出
+                    if (forward_site) {
+                        writeCall(os[forward_type], config, hdr->target_name[tid], pos, 1, nmethyl, nunmethyl, 'C', NULL, NULL);
+                    }
+                    if (reverse_site) {
+                        writeCall(os[reverse_type], config, hdr->target_name[tid], pos, 1, nmethyl, nunmethyl, 'G', NULL, NULL);
+                    }
+                    // writeCall(os[type], config, hdr->target_name[tid], pos, 1, nmethyl, nunmethyl, base, NULL, NULL);
                 }
             } else {
                 //Merge into per-CpG/CHG metrics
